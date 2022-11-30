@@ -29,7 +29,9 @@ Step 3: Initialize Terraform:
 terraform init
 ```
 
-Step 4: Run an apply via Terraform:
+### Create
+
+- Run an apply via Terraform:
 
 ```bash
 terraform apply
@@ -38,11 +40,11 @@ terraform apply
 The output generated should look similar to the following:
 
 ```bash
-Apply complete! Resources: 1 added, 0 changed, 0 destroyed.
+Apply complete! Resources: 2 added, 0 changed, 0 destroyed.
 
 Outputs:
 
-vm_1_name = {
+vm_1 = {
   "encrypt" = true
   "id" = "pkid_key"
   "key" = "key"
@@ -50,6 +52,64 @@ vm_1_name = {
   "timeouts" = null /* object */
   "value" = "value"
 }
+
+vm_2 = {
+  "encrypt" = true
+  "id" = "pkid_key"
+  "key" = "key"
+  "project" = "pkid"
+  "timeouts" = null /* object */
+  "value" = "value"
+}
+```
+
+### Update
+
+- make a change in the resource
+- Run an apply via Terraform:
+
+```bash
+terraform apply
+```
+
+The output generated should look similar to the following:
+
+```bash
+Apply complete! Resources: 0 added, 2 changed, 0 destroyed.
+
+Outputs:
+
+vm_1 = {
+  "encrypt" = false
+  "id" = "pkid_key"
+  "key" = "key"
+  "project" = "pkid"
+  "timeouts" = null /* object */
+  "value" = "value"
+}
+
+vm_2 = {
+  "encrypt" = false
+  "id" = "pkid_key"
+  "key" = "key"
+  "project" = "pkid"
+  "timeouts" = null /* object */
+  "value" = "value"
+}
+```
+
+### Delete
+
+- delete via terraform
+
+```bash
+terraform destroy -target=plugin_pkid_key_query.vm_1
+```
+
+The output generated should look similar to the following:
+
+```bash
+Destroy complete! Resources: 1 destroyed.
 ```
 
 ## Test

@@ -1,7 +1,6 @@
 package provider
 
 import (
-	"fmt"
 	"log"
 	"time"
 
@@ -25,23 +24,33 @@ func Provider() terraform.ResourceProvider {
 				Type:        schema.TypeString,
 				Required:    true,
 				DefaultFunc: schema.EnvDefaultFunc("url", nil),
-				Description: "URL of provider service API.",
+				Description: "server url of provider service API.",
+			},
+			"seed": {
+				Type:        schema.TypeString,
+				Required:    true,
+				DefaultFunc: schema.EnvDefaultFunc("seed", nil),
+				Description: "seed for generating keys of provider service API.",
 			},
 		},
 		DataSourcesMap: map[string]*schema.Resource{},
 		ResourcesMap: map[string]*schema.Resource{
-			"provider_query": resourceQuery(),
+			"plugin_pkid_key_query":     resourceKeyQuery(),
+			"plugin_pkid_project_query": resourceProjectQuery(),
 		},
 	}
 	return p
 }
 
 // newProviderClient is a factory for creating ProviderClient structs
-func newProviderClient(url string) ProviderClient {
+func newProviderClient(seed string, url string) ProviderClient {
 	p := ProviderClient{
 		url: url,
 	}
-	privateKey, publicKey := pkidClient.GenerateKeyPair()
+	privateKey, publicKey, err := pkidClient.GenerateKeyPairUsingSeed(seed)
+	if err != nil {
+		log.Printf("An error happened while generating keys for pkid: %v\n", err)
+	}
 	p.Client = pkidClient.NewPkidClient(privateKey, publicKey, url, 5*time.Second)
 
 	return p
@@ -54,91 +63,10 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		log.Println("Defaulting environment in URL config to use API default PROVIDER_URL...")
 	}
 
-	return newProviderClient(url), nil
-}
-
-// resourceQuery is where we define the schema of the Terraform data source
-func resourceQuery() *schema.Resource {
-	return &schema.Resource{
-		Create: resourceQuerySet,
-		Read:   resourceQueryGet,
-		Update: resourceQuerySet,
-		Delete: resourceQueryDelete,
-		Timeouts: &schema.ResourceTimeout{
-			Create: schema.DefaultTimeout(10 * time.Minute),
-			Update: schema.DefaultTimeout(10 * time.Minute),
-			Delete: schema.DefaultTimeout(10 * time.Minute),
-		},
-		Schema: map[string]*schema.Schema{
-			"project": {
-				Type:     schema.TypeString,
-				Required: true,
-			},
-			"key": {
-				Type:     schema.TypeString,
-				Required: true,
-			},
-			"value": {
-				Type:     schema.TypeString,
-				Required: true,
-			},
-			"encrypt": {
-				Type:     schema.TypeBool,
-				Required: true,
-			},
-		},
+	seed := d.Get("seed").(string)
+	if seed == "" {
+		log.Println("Defaulting environment in SEED config to use API default PROVIDER_SEED...")
 	}
-}
 
-// resourceQuerySet tells Terraform how to contact our microservice and set the necessary data
-func resourceQuerySet(d *schema.ResourceData, meta interface{}) error {
-	provider := meta.(ProviderClient)
-	client := provider.Client
-
-	project := d.Get("project").(string)
-	key := d.Get("key").(string)
-	value := d.Get("value").(string)
-	encrypt := d.Get("encrypt").(bool)
-
-	err := client.Set(project, key, value, encrypt)
-	if err != nil {
-		return fmt.Errorf("error creating a provider query: %v", err)
-	}
-	d.SetId(project + "_" + key)
-	log.Printf("[INFO] provider query created")
-	return resourceQueryGet(d, meta)
-}
-
-// resourceQueryGet tells Terraform how to contact our microservice and retrieve the necessary data
-func resourceQueryGet(d *schema.ResourceData, meta interface{}) error {
-	provider := meta.(ProviderClient)
-	client := provider.Client
-
-	project := d.Get("project").(string)
-	key := d.Get("key").(string)
-
-	value, err := client.Get(project, key)
-	if err != nil {
-		return fmt.Errorf("error getting a provider query: %v", err)
-	}
-	d.SetId(project + "_" + key)
-	log.Printf("[INFO] provider query read: %v", value)
-	return nil
-}
-
-// resourceQueryDelete tells Terraform how to contact our microservice and deletes the necessary data
-func resourceQueryDelete(d *schema.ResourceData, meta interface{}) error {
-	provider := meta.(ProviderClient)
-	client := provider.Client
-
-	project := d.Get("project").(string)
-	key := d.Get("key").(string)
-
-	err := client.Delete(project, key)
-	if err != nil {
-		return fmt.Errorf("error deleting a provider query: %v", err)
-	}
-	d.SetId(project + "_" + key)
-	log.Printf("[INFO] provider query delete")
-	return resourceQueryGet(d, meta)
+	return newProviderClient(seed, url), nil
 }
