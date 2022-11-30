@@ -2,8 +2,7 @@ test:
 	go test -v -vet=off ./...
 
 docs: 
-	go get github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs
-	go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs
+	go generate
 	
 init:
 	terraform init
