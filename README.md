@@ -2,7 +2,17 @@
 
 This folder encapsulates the Terraform Provider that issues API calls to the [pkid](https://github.com/rawdaGastan/pkid).
 
-## Running the example
+## Run the example
+
+- Initialize Terraform
+
+```bash
+terraform init
+```
+
+- Try [applications](README.md#applications)
+
+## Run the example locally
 
 To run the Terraform Provider locally there are a few steps to complete:
 
@@ -23,11 +33,28 @@ make build
 
 > Note: The plugin folder may need to be created.
 
-Step 3: Initialize Terraform:
+Step 3: Use:
+
+```tf
+terraform {
+  required_providers {
+    plugin = {
+      source  = "example.com/local/plugin"
+      version = "~> 1.0.0"
+    }
+  }
+}
+```
+
+Step 4: Initialize Terraform:
 
 ```bash
 terraform init
 ```
+
+Step 5: Try [applications](README.md#applications)
+
+## Applications
 
 ### Create
 
